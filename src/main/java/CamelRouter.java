@@ -1,19 +1,17 @@
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.model.FaultToleranceConfigurationDefinition;
 
 public class CamelRouter extends RouteBuilder {
     @Override
     public void configure() throws Exception {
-        final var faultToleranceConfigurationDefinition = new FaultToleranceConfigurationDefinition();
-        faultToleranceConfigurationDefinition.failureRatio(1);
-
         from("direct:start")
                 .circuitBreaker()
-                .faultToleranceConfiguration(faultToleranceConfigurationDefinition)
+                .faultToleranceConfiguration().timeoutEnabled(true).timeoutDuration(2000).end()
+                .log("Fault Tolerance processing start: ${threadName}")
                 .to("http://fooservice.com/slow")
+                .log("Fault Tolerance processing end: ${threadName}")
                 .onFallback()
                 .transform().constant("Fallback message")
-                .end()
-                .to("mock:result");
+                .endCircuitBreaker()
+                .log("After Fault Tolerance ${body}");
     }
 }
